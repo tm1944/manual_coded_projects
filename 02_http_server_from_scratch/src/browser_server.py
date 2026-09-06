@@ -1,6 +1,8 @@
 import socket
 from datetime import datetime
 from src.request import Request
+from src.router import Router
+
 HOST = "127.0.0.1"
 PORT = 8080
 
@@ -38,9 +40,12 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
 					break
 
 
-
 			request.print_request_body()
 
+			router = Router(request)
+			http_response = router.routing_method_path()
+
+			'''
 			body = "<h1>Hello from server :-D </h1>"
 			http_response = (
 				"HTTP/1.1 200 OK\r\n"
@@ -49,5 +54,5 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
 				f"Content-Length: {len(body)}\r\n"
 				"\r\n"
 				f"{body}"
-			)
+			)'''
 			conn.sendall(http_response.encode('utf-8'))
