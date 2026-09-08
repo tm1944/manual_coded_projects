@@ -1,11 +1,14 @@
 from uuid import UUID
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, HTTPException, Response, status, Depends
 from pydantic import BaseModel, Field
-from fast_task_api.task import Task, TaskNotFoundError, TaskService
+from fast_task_api.task import Task, TaskNotFoundError, TaskService,TaskStorage
 
 app = FastAPI()
-task_service = TaskService()
+task_storage = TaskStorage()
 
+
+def get_service():
+	return TaskService(TaskStorage)
 
 class CreateTaskRequest(BaseModel):
     name: str = Field(min_length=1)
@@ -23,17 +26,17 @@ def task_or_404(task_id: UUID) -> HTTPException:
 
 
 @app.post("/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
-def create_task(request: CreateTaskRequest) -> Task:
+def create_task(request: CreateTaskRequest, task_service = Depends(get_service)) -> Task:
     return task_service.create_task(request.name)
 
 
 @app.get("/tasks", response_model=list[Task])
-def get_tasks() -> list[Task]:
+def get_tasks(task_service = Depends(get_service)) -> list[Task]:
     return task_service.get_all_tasks()
 
 
 @app.get("/tasks/{task_id}", response_model=Task)
-def get_task(task_id: UUID) -> Task:
+def get_task(task_id: UUID, task_service = Depends(get_service)) -> Task:
     try:
         return task_service.get_task(task_id)
     except TaskNotFoundError:
@@ -41,7 +44,7 @@ def get_task(task_id: UUID) -> Task:
 
 
 @app.patch("/tasks/{task_id}", response_model=Task)
-def update_task(task_id: UUID, request: UpdateTaskRequest) -> Task:
+def update_task(task_id: UUID, request: UpdateTaskRequest, task_service = Depends(get_service)) -> Task:
     try:
         return task_service.set_task_completion(task_id, request.completed)
     except TaskNotFoundError:
@@ -49,7 +52,7 @@ def update_task(task_id: UUID, request: UpdateTaskRequest) -> Task:
 
 
 @app.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: UUID) -> Response:
+def delete_task(task_id: UUID, task_service = Depends(get_service)) -> Response:
     try:
         task_service.delete_task(task_id)
     except TaskNotFoundError:
